@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "TIFO",
+    "slug": "tifo",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "tifo",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#070908",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "io.tifo.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "TIFO listens to match commentary on-device to translate it into your language. Audio never leaves your phone."
+      }
+    },
+    "android": {
+      "package": "io.tifo.app",
+      "permissions": ["RECORD_AUDIO"]
+    },
+    "plugins": [
+      ["expo-build-properties", { "android": { "minSdkVersion": 29 } }],
+      "@qvac/sdk/expo-plugin"
+    ]
+  }
+}
