@@ -17,11 +17,21 @@
     },
     "android": {
       "package": "io.tifo.app",
-      "permissions": ["RECORD_AUDIO"]
+      "permissions": [
+        "RECORD_AUDIO"
+      ]
     },
     "plugins": [
-      ["expo-build-properties", { "android": { "minSdkVersion": 29 } }],
-      "@qvac/sdk/expo-plugin"
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29
+          }
+        }
+      ],
+      "@qvac/sdk/expo-plugin",
+      "expo-audio"
     ]
   }
 }

@@ -8,7 +8,7 @@
     "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
     "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
     "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot" },
-    "embed": { "const": "GTE_LARGE_FP16",                    "dim": 1024 }
+    "embed": { "const": "EMBEDDINGGEMMA_300M_Q4_0",                    "dim": 768 }
   },
   "lang": { "source": "en", "target": "es" },
   "ui": {
@@ -60,12 +60,13 @@
     "packPath": "data/football-pack.json",
     "cacheFile": "rag-index.json",
     "topK": 4,
-    "minScore": 0.84,
-    "queryPrefix": "",
-    "docPrefix": ""
+    "minScore": 0.5,
+    "queryPrefix": "task: search result | query: ",
+    "docPrefix": "title: none | text: "
   },
   "companion": {
-    "ctxSize": 4096,
+    "ctxSize": 2048,
+    "sequentialModels": false,
     "maxContextChars": 1500,
     "systemPrompt": "You are TIFO, a friendly offline football matchday companion. Answer the QUESTION using the single most relevant fact in CONTEXT, quoting its numbers and wording closely. Ignore CONTEXT facts that are not about the QUESTION, and never add a fact, number, or arithmetic that is not in CONTEXT. If CONTEXT does not contain the answer, reply with exactly this sentence and nothing else: I don't have that in my offline matchday pack yet. Reply in one or two short sentences of plain spoken text. No markdown, no lists, no emojis.",
     "refusal": "I don't have that in my offline matchday pack yet.",

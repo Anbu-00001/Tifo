@@ -30,7 +30,7 @@ export async function predownload(constName: string, onProgress?: (p: Progress) 
   const assetSrc = resolveModel(constName);
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      await qvac.downloadAsset({ assetSrc, onProgress });
+      await qvac.downloadAsset({ assetSrc, onProgress } as unknown as Parameters<typeof qvac.downloadAsset>[0]);
       return;
     } catch (e) {
       if (attempt === retries) throw e;
@@ -50,7 +50,7 @@ export async function load({ constName, type, modelConfig, onProgress }: LoadArg
     ...(type ? { modelType: type } : {}),
     ...(modelConfig ? { modelConfig } : {}),
     onProgress,
-  } as Parameters<typeof qvac.loadModel>[0]);
+  } as unknown as Parameters<typeof qvac.loadModel>[0]);
   const modelId = typeof loaded === "string" ? loaded : (loaded as { modelId?: string })?.modelId;
   if (!modelId) throw new Error(`loadModel(${constName}) returned no modelId`);
   return modelId;

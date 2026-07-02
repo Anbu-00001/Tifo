@@ -18,7 +18,7 @@ export type Config = {
   rag: { topK: number; minScore: number; queryPrefix: string; docPrefix: string };
   companion: {
     ctxSize: number; maxContextChars: number; systemPrompt: string; refusal: string;
-    generationParams: Record<string, number>;
+    generationParams: Record<string, number>; sequentialModels?: boolean;
   };
   ui: { sourceFlag: string; languages: Lang[] };
   sample: { commentaryLines: string[]; exampleQuestions?: string[] };

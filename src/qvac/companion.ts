@@ -7,6 +7,10 @@ import { pcm16ToWavBytes } from "../audio/pcm";
 
 const TTS_RATE = cfg.audio.ttsSampleRate;
 const comp = cfg.companion;
+// Memory-constrained phones can't hold two large models at once (embedder ~670MB
+// + LLM ~773MB OOM'd a 4GB device). When true, unload each big model before the
+// next loads so only one is ever resident. Config-driven (default on).
+const sequential = comp.sequentialModels ?? true;
 
 let llmId: string | null = null;
 const nmtIds = new Map<string, string>();
@@ -15,6 +19,9 @@ const ttsIds = new Map<string, string>();
 async function llm(): Promise<string> {
   if (!llmId) llmId = await load({ constName: cfg.models.llm.const, type: cfg.models.llm.type, modelConfig: { ctx_size: comp.ctxSize } });
   return llmId;
+}
+async function unloadLLM(): Promise<void> {
+  if (llmId) { await unload(llmId); llmId = null; }
 }
 async function nmt(source: string, target: string): Promise<string> {
   const key = `${source}->${target}`;
@@ -72,9 +79,11 @@ export async function* askCompanion(opts: {
   if (!q) { yield { type: "answer", text: "Ask me something about the match.", grounded: false }; yield { type: "done", latMs: 0, grounded: false }; return; }
 
   yield { type: "status", msg: "Searching the offline matchday pack…" };
+  if (sequential) await unloadLLM();                 // free the LLM so the embedder has RAM to load
   const hits = await search(q, cfg.rag.topK);
   const grounded = (hits[0]?.score ?? 0) >= cfg.rag.minScore;
   yield { type: "sources", sources: hits.map((h) => ({ topic: h.topic, score: Number(h.score.toFixed(3)) })), grounded };
+  if (sequential) await unloadEmbedder();            // free the ~670MB embedder before the LLM loads
 
   let answer: string;
   if (!grounded) {
