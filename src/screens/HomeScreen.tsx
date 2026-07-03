@@ -27,11 +27,11 @@ export default function HomeScreen({ nav }: { nav: (s: Screen) => void }) {
         <Text style={[s.chev, { color: C.accent }]}>›</Text>
       </Pressable>
 
-      <Pressable style={s.feature} onPress={() => nav("ask")}>
-        <View style={s.ic}><Text style={s.icT}>⚽</Text></View>
+      <Pressable style={s.feature} onPress={() => nav("room")}>
+        <View style={s.ic}><Text style={s.icT}>🌍</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.fT}>Ask the companion</Text>
-          <Text style={s.fS}>Grounded answers on football rules</Text>
+          <Text style={s.fT}>Fan room</Text>
+          <Text style={s.fS}>P2P match chat — no server, no signup</Text>
         </View>
         <Text style={s.chev}>›</Text>
       </Pressable>

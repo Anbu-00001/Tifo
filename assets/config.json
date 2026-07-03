@@ -3,14 +3,17 @@
   "outDir": "out",
   "useGpu": false,
   "models": {
-    "llm":  { "const": "LLAMA_3_2_1B_INST_Q4_0",            "type": "llm" },
     "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
     "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
     "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
-    "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot" },
-    "embed": { "const": "EMBEDDINGGEMMA_300M_Q4_0",                    "dim": 768 }
+    "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot" }
   },
   "lang": { "source": "en", "target": "es" },
+  "room": {
+    "topic": "tifo-match-room-v1",
+    "maxMessageBytes": 4096,
+    "bootstrap": ["192.168.1.105:49737"]
+  },
   "ui": {
     "sourceFlag": "🇬🇧",
     "languages": [
@@ -25,18 +28,11 @@
   "audio": { "asrSampleRate": 16000, "ttsSampleRate": 44100 },
   "sample": {
     "commentary": "And it's a goal! An absolute thunderbolt from outside the box in the final minute of the match!",
-    "llmPrompt": "In one short sentence, explain the offside rule in football.",
     "commentaryLines": [
       "Kickoff! The home side gets us underway in this final.",
       "A beautiful through ball splits the defense wide open.",
       "He shoots, and it's a goal! An absolute thunderbolt in the final minute!",
       "What a moment for these supporters around the world."
-    ],
-    "exampleQuestions": [
-      "What is offside?",
-      "How many substitutions are allowed?",
-      "When is it a penalty?",
-      "What does VAR check?"
     ]
   },
   "stream": {
@@ -55,22 +51,5 @@
     "ttsSpeed": 1.05,
     "ttsSteps": 5,
     "asrParams": { "strategy": "greedy", "no_timestamps": true, "suppress_blank": true, "suppress_nst": true, "temperature": 0.0 }
-  },
-  "rag": {
-    "packPath": "data/football-pack.json",
-    "cacheFile": "rag-index.json",
-    "topK": 4,
-    "minScore": 0.5,
-    "queryPrefix": "task: search result | query: ",
-    "docPrefix": "title: none | text: "
-  },
-  "companion": {
-    "ctxSize": 2048,
-    "sequentialModels": false,
-    "maxContextChars": 1500,
-    "systemPrompt": "You are TIFO, a friendly offline football matchday companion. Answer the QUESTION using the single most relevant fact in CONTEXT, quoting its numbers and wording closely. Ignore CONTEXT facts that are not about the QUESTION, and never add a fact, number, or arithmetic that is not in CONTEXT. If CONTEXT does not contain the answer, reply with exactly this sentence and nothing else: I don't have that in my offline matchday pack yet. Reply in one or two short sentences of plain spoken text. No markdown, no lists, no emojis.",
-    "refusal": "I don't have that in my offline matchday pack yet.",
-    "speak": true,
-    "generationParams": { "temp": 0, "predict": 160, "repeat_penalty": 1.1, "seed": 7, "reasoning_budget": 0 }
   }
 }

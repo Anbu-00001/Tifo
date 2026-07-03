@@ -14,8 +14,7 @@ export function resolveModel(constName: string): unknown {
 }
 
 // Resolve the NMT model constant for a language pair from a config-driven template
-// (default "BERGAMOT_${SRC}_${TGT}"), falling back to cfg.models.nmt.const. Single
-// source of truth so liveTranslate + companion can't drift.
+// (default "BERGAMOT_${SRC}_${TGT}"), falling back to cfg.models.nmt.const.
 export function nmtConstFor(source: string, target: string): string {
   const tmpl = cfg.models.nmt.constTemplate || "BERGAMOT_${SRC}_${TGT}";
   const guess = tmpl.replace("${SRC}", source.toUpperCase()).replace("${TGT}", target.toUpperCase());

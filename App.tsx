@@ -6,9 +6,9 @@ import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fon
 import { C } from "./src/theme";
 import HomeScreen from "./src/screens/HomeScreen";
 import LiveScreen from "./src/screens/LiveScreen";
-import AskScreen from "./src/screens/AskScreen";
+import RoomScreen from "./src/screens/RoomScreen";
 
-export type Screen = "home" | "live" | "ask";
+export type Screen = "home" | "live" | "room";
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
@@ -22,7 +22,7 @@ export default function App() {
       <StatusBar barStyle="light-content" />
       {fontsLoaded && screen === "home" && <HomeScreen nav={setScreen} />}
       {fontsLoaded && screen === "live" && <LiveScreen nav={setScreen} />}
-      {fontsLoaded && screen === "ask" && <AskScreen nav={setScreen} />}
+      {fontsLoaded && screen === "room" && <RoomScreen nav={setScreen} />}
     </View>
   );
 }

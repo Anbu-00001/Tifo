@@ -9,12 +9,14 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
+    "bundle:room": "node node_modules/@qvac/sdk/node_modules/bare-pack/bin.js --linked --host android-arm64 --format bundle.cjs --out src/mesh/room.bundle.js worklet/room.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.0",
     "@expo-google-fonts/jetbrains-mono": "^0.4.0",
     "@qvac/sdk": "^0.14.0",
+    "b4a": "^1.8.1",
     "babel-preset-expo": "~54.0.10",
     "expo": "^54.0.0",
     "expo-asset": "~12.0.0",
@@ -23,9 +25,11 @@
     "expo-device": "~8.0.0",
     "expo-file-system": "~19.0.0",
     "expo-font": "~14.0.0",
+    "hyperswarm": "^4.17.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
-    "react-native-bare-kit": "^0.14.0"
+    "react-native-bare-kit": "^0.14.0",
+    "sodium-universal": "^5.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.25.0",
