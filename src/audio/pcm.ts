@@ -101,10 +101,40 @@ export function pcm16ToWavBytes(pcm: Int16Array, sampleRate: number, channels = 
   return buf;
 }
 
+// Little-endian PCM16 bytes (e.g. a mic frame) → normalized f32 samples.
+export function pcm16LEToF32(bytes: Uint8Array): Float32Array {
+  const n = Math.floor(bytes.byteLength / 2);
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, n * 2);
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) out[i] = dv.getInt16(i * 2, true) / 32768;
+  return out;
+}
+
 export function concatInt16(list: Int16Array[]): Int16Array {
   const total = list.reduce((n, a) => n + a.length, 0);
   const out = new Int16Array(total);
   let off = 0;
   for (const a of list) { out.set(a, off); off += a.length; }
   return out;
+}
+
+// QVAC's textToSpeech (stream:false) resolves `buffer` as a plain number[] —
+// the RPC wire is JSON, so typed arrays don't survive. Accept every shape the
+// SDK has been seen to return and normalize to Int16Array. Heuristic: if all
+// sampled values sit in [-1, 1] the samples are float-scale and need widening
+// to int16 range (a genuine int16 utterance would peak far above 1).
+export function toInt16Pcm(buf: unknown): Int16Array {
+  if (buf instanceof Int16Array) return buf;
+  if (ArrayBuffer.isView(buf)) return new Int16Array((buf as ArrayBufferView).buffer);
+  if (Array.isArray(buf) && buf.length > 0) {
+    let peak = 0;
+    for (let i = 0; i < buf.length; i += 97) peak = Math.max(peak, Math.abs(buf[i] as number));
+    const scale = peak <= 1.0 ? 32767 : 1;
+    const out = new Int16Array(buf.length);
+    for (let i = 0; i < buf.length; i++) {
+      out[i] = Math.max(-32768, Math.min(32767, Math.round((buf[i] as number) * scale)));
+    }
+    return out;
+  }
+  return new Int16Array(0);
 }

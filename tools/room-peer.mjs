@@ -23,6 +23,7 @@ const name = arg("--name", "Laptop");
 const lang = arg("--lang", cfg.lang.source);
 const topic = arg("--topic", cfg.room.topic);
 const sayOnPeer = arg("--say", null); // auto-send once the first peer appears (for scripted tests)
+const sayDelayMs = Number(arg("--say-delay-ms", 2000)); // let other peers' connections open first — connections opening 100ms apart otherwise miss the broadcast
 const exitAfterMs = Number(arg("--exit-after-ms", 0));
 // "host:port[,host:port…]" — local/LAN DHT bootstrap (see room-bootstrap.mjs); default = config, then public DHT.
 const bootstrap = (arg("--bootstrap", (cfg.room.bootstrap ?? []).join(",")) || "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -40,8 +41,10 @@ const room = createRoom({ topic, name, lang, maxMessageBytes: cfg.room.maxMessag
       log(`PEER JOINED: ${e.name} (${e.lang}) key=${e.key} — ${e.peers} in room`);
       if (sayOnPeer && !said) {
         said = true;
-        const echo = room.send(sayOnPeer);
-        if (echo) log(`SENT: "${echo.text}"`);
+        setTimeout(() => {
+          const echo = room.send(sayOnPeer);
+          if (echo) log(`SENT: "${echo.text}"`);
+        }, sayDelayMs);
       }
       break;
     case "peer-gone": log(`peer left: ${e.name ?? e.key} — ${e.peers} in room`); break;

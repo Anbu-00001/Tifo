@@ -35,6 +35,18 @@ models. To make it theatrical:
 3. Reconnect laptop + phones to that LAN; restart the DHT + peers (golden order).
 4. Film: messages flow and translate with the status bar showing no internet.
 
+## Voice (Day 7–9 additions)
+- **🔊 speaker toggle** (room header): incoming messages are SPOKEN in your language by
+  on-device TTS after translation (first use downloads the ~121 MB multilingual voice;
+  pre-warm it). Playback is serial — bursts queue, never overlap.
+- **🎙 mic toggle** (left of the input): speak, pause — each utterance is transcribed
+  on-device (Whisper + VAD) and posted to the room as a normal text message; receivers
+  translate/speak it like any other. First use asks for mic permission and downloads
+  ~75 MB. **Speak clearly, close to the phone** — whisper-tiny + room echo degrades fast.
+  ASR listens in the language you joined with.
+- Full loop for the film: speak English on one device → the other device SHOWS Spanish
+  and SPEAKS Spanish. Zero cloud.
+
 ## Filming checklist (the shots that matter)
 - Home: "0 servers · 100% on-device" badge + Fan room hero card.
 - Language pick: chips including Devanagari/Arabic rendering.
@@ -54,3 +66,6 @@ models. To make it theatrical:
 - **Phone via WiFi adb** (USB cable is charge-only): phone Settings → Developer options →
   Wireless debugging → pair; then `adb pair IP:port CODE`. `adb reverse tcp:8081 tcp:8081`
   works over WiFi adb.
+- **Native rebuild needed?** Only when adding native modules (expo-stream-audio lives in
+  the APK). `npx expo prebuild --platform android` WIPES `android/local.properties` —
+  recreate it (`sdk.dir=/home/anbu/Android/Sdk`) before `./gradlew assembleDebug`.

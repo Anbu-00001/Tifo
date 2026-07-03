@@ -12,7 +12,8 @@
   "room": {
     "topic": "tifo-match-room-v1",
     "maxMessageBytes": 4096,
-    "bootstrap": ["192.168.1.105:49737"]
+    "bootstrap": ["192.168.1.105:49737"],
+    "speak": false
   },
   "ui": {
     "sourceFlag": "🇬🇧",

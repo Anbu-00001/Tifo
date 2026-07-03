@@ -4,8 +4,11 @@ import * as Device from "expo-device";
 import { C, F, fontFor } from "../theme";
 import { cfg, type Lang } from "../config";
 import type { Screen } from "../../App";
+import { requestRecordingPermissionsAsync } from "expo-audio";
 import { joinRoom, type Room, type RoomEvent } from "../mesh/room";
 import { translateForRoom, isRoomLang, unloadRoomNmt } from "../qvac/roomTranslate";
+import { speak, unloadRoomTts } from "../qvac/roomVoice";
+import { startVoiceInput, unloadRoomAsr, type VoiceInput } from "../qvac/roomMic";
 
 type MsgState = "plain" | "translating" | "translated" | "untranslatable" | "failed";
 type Msg = { id: string; name: string; lang: string; text: string; orig: string; ts: number; self: boolean; state: MsgState; viaPivot?: boolean };
@@ -28,6 +31,32 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
   const room = useRef<Room | null>(null);
   const list = useRef<FlatList<Msg>>(null);
   const rtl = cfg.ui.languages.find((l) => l.code === myLang)?.rtl === true;
+  // Ref, not state, inside the room callback — the callback closes over join-time
+  // values, and the toggle must take effect for messages that arrive later.
+  const [speakOn, setSpeakOn] = useState(cfg.room.speak ?? false);
+  const speakRef = useRef(speakOn);
+  const toggleSpeak = () => setSpeakOn((v) => { speakRef.current = !v; return !v; });
+  const [micOn, setMicOn] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState("");
+  const voice = useRef<VoiceInput | null>(null);
+
+  async function toggleMic() {
+    if (voice.current) {
+      voice.current.stop();
+      voice.current = null;
+      setMicOn(false);
+      setVoiceStatus("");
+      return;
+    }
+    const { granted } = await requestRecordingPermissionsAsync();
+    if (!granted) { setVoiceStatus("microphone permission denied"); return; }
+    setMicOn(true);
+    voice.current = startVoiceInput({
+      lang: myLang ?? cfg.lang.source,
+      onUtterance: (t) => room.current?.send(t),
+      onStatus: setVoiceStatus,
+    });
+  }
 
   function patchMsg(id: string, patch: Partial<Msg>) {
     setMsgs((m) => m.map((x) => (x.id === id ? { ...x, ...patch } : x)));
@@ -40,11 +69,17 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
       id, name: e.name, lang: e.lang, text: e.text, orig: e.text, ts: e.ts, self: false,
       state: needs ? "translating" : "plain",
     }]);
-    if (!needs) return;
+    if (!needs) {
+      if (speakRef.current) void speak(e.text, lang);
+      return;
+    }
     translateForRoom(e.text, e.lang, lang)
       .then((r) => {
         if (r === null) patchMsg(id, { state: "untranslatable" });
-        else patchMsg(id, { text: r.text, state: "translated", viaPivot: r.route.length > 1 });
+        else {
+          patchMsg(id, { text: r.text, state: "translated", viaPivot: r.route.length > 1 });
+          if (speakRef.current) void speak(r.text, lang);
+        }
       })
       .catch(() => patchMsg(id, { state: "failed" }));
   }
@@ -68,9 +103,13 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
   }
 
   useEffect(() => () => {
+    voice.current?.stop();
+    voice.current = null;
     room.current?.leave();
     room.current = null;
     void unloadRoomNmt().catch(() => {});
+    void unloadRoomTts().catch(() => {});
+    void unloadRoomAsr().catch(() => {});
   }, []);
 
   function send() {
@@ -121,6 +160,9 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
       <View style={s.nav}>
         <Pressable onPress={() => nav("home")}><Text style={s.back}>‹</Text></Pressable>
         <Text style={s.navT}>Fan room</Text>
+        <Pressable onPress={toggleSpeak} style={[s.spk, speakOn && s.spkOn]}>
+          <Text style={s.spkT}>{speakOn ? "🔊" : "🔇"}</Text>
+        </Pressable>
         <View style={s.badge}><View style={s.dot} /><Text style={s.badgeT}>{flagOf(myLang)} {myLang.toUpperCase()} · P2P</Text></View>
       </View>
 
@@ -164,7 +206,11 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
         )}
       />
 
+      {voiceStatus !== "" && <Text style={s.voiceStatus}>{voiceStatus}</Text>}
       <View style={s.inputRow}>
+        <Pressable onPress={toggleMic} style={[s.mic, micOn && s.micOn]}>
+          <Text style={s.micT}>🎙</Text>
+        </Pressable>
         <TextInput
           style={s.input}
           value={input}
@@ -186,6 +232,13 @@ const s = StyleSheet.create({
   back: { color: C.mut, fontSize: 34, paddingHorizontal: 6, marginTop: -6 },
   navT: { color: C.fg, fontFamily: F.sansBold, fontSize: 22, flex: 1 },
   badge: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: "rgba(35,209,139,0.09)", borderWidth: 1, borderColor: "rgba(35,209,139,0.4)" },
+  spk: { padding: 6, borderRadius: 999, borderWidth: 1, borderColor: C.line },
+  spkOn: { borderColor: "rgba(35,209,139,0.5)", backgroundColor: "rgba(35,209,139,0.1)" },
+  spkT: { fontSize: 16 },
+  mic: { padding: 10, borderRadius: 999, borderWidth: 1, borderColor: C.line },
+  micOn: { borderColor: "rgba(239,106,82,0.7)", backgroundColor: "rgba(239,106,82,0.15)" },
+  micT: { fontSize: 18 },
+  voiceStatus: { color: C.amber, fontFamily: F.mono, fontSize: 11, marginBottom: 2 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent },
   badgeT: { color: C.accent, fontFamily: F.mono, fontSize: 10, fontWeight: "700" },
   status: { color: C.mut, fontFamily: F.mono, fontSize: 12 },

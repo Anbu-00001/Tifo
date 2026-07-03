@@ -31,7 +31,8 @@
         }
       ],
       "@qvac/sdk/expo-plugin",
-      "expo-audio"
+      "expo-audio",
+      "expo-stream-audio"
     ]
   }
 }

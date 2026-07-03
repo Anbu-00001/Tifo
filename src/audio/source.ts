@@ -1,8 +1,9 @@
 // An AudioSource yields f32le mono chunks at the ASR sample rate, ready to feed
 // straight into transcribeStream. Two implementations:
-//   • bundledClipSource — decodes a bundled WAV asset (works today; the demo path)
-//   • micSource         — live phone mic (needs a raw-PCM native module; see PORTING.md)
-import { parseWav, toMonoF32, f32ToLEBytes } from "./pcm";
+//   • bundledClipSource — decodes a bundled WAV asset (guaranteed offline demo path)
+//   • micSource         — live phone mic via expo-stream-audio (PCM16 frames → f32le)
+import * as StreamAudio from "expo-stream-audio";
+import { parseWav, toMonoF32, f32ToLEBytes, base64ToBytes, pcm16LEToF32 } from "./pcm";
 import { readAssetBytes } from "./io";
 
 export type AudioChunk = Uint8Array; // little-endian f32 PCM, mono, at sampleRate
@@ -28,17 +29,38 @@ export function bundledClipSource(moduleRef: number, paced = true): AudioSource 
   };
 }
 
-// Live microphone. QVAC wants continuous f32le mono @ sampleRate. Expo's built-in
-// audio records to a file, not a live PCM stream, so this needs a raw-PCM module
-// (e.g. react-native-live-audio-stream emitting base64 PCM16 chunks, which we'd
-// convert via pcm16→f32). Wired on-device in a follow-up — see PORTING.md.
+// Live microphone via expo-stream-audio: native layer emits base64 PCM16 mono
+// frames (~20ms cadence); we convert each to f32le for transcribeStream. The
+// generator ends when the consumer calls .return() (its finally block stops the
+// native stream) — frames arriving every ~20ms guarantee the pending await
+// settles promptly, so teardown is quick.
 export function micSource(): AudioSource {
   return {
-    // eslint-disable-next-line require-yield
-    async *chunks() {
-      throw new Error(
-        "micSource is not wired yet — install a raw-PCM stream module and convert PCM16→f32le (see PORTING.md). Use bundledClipSource for the demo."
-      );
+    async *chunks(_chunkMs: number, sampleRate: number) {
+      const queue: Uint8Array[] = [];
+      let wake: (() => void) | null = null;
+      let error: Error | null = null;
+      const frameSub = StreamAudio.addFrameListener((e) => {
+        queue.push(f32ToLEBytes(pcm16LEToF32(base64ToBytes(e.pcmBase64))));
+        wake?.();
+      });
+      const errSub = StreamAudio.addErrorListener((e) => {
+        error = new Error(e.message || "mic stream error");
+        wake?.();
+      });
+      try {
+        await StreamAudio.start({ sampleRate: sampleRate as 16000 });
+        while (true) {
+          while (queue.length) yield queue.shift()!;
+          if (error) throw error;
+          await new Promise<void>((r) => { wake = r; });
+          wake = null;
+        }
+      } finally {
+        frameSub.remove();
+        errSub.remove();
+        try { await StreamAudio.stop(); } catch { /* already stopped */ }
+      }
     },
   };
 }

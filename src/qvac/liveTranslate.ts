@@ -2,7 +2,7 @@
 // takes an AudioSource instead of ffmpeg, and uses the identical @qvac/sdk API.
 import { cfg } from "../config";
 import { load, unload, predownload, resolveModel, nmtConstFor, qvac } from "./models";
-import { pcm16ToWavBytes } from "../audio/pcm";
+import { pcm16ToWavBytes, toInt16Pcm } from "../audio/pcm";
 import type { AudioSource } from "../audio/source";
 
 const TTS_RATE = cfg.audio.ttsSampleRate;
@@ -14,10 +14,7 @@ function isMeaningful(text: string): boolean {
   return t.replace(/[^\p{L}\p{N}]/gu, "").length >= 3;
 }
 async function collectPcm(res: unknown): Promise<Int16Array> {
-  const buf = await (res as { buffer?: Promise<Int16Array> }).buffer;
-  if (buf instanceof Int16Array) return buf;
-  if (ArrayBuffer.isView(buf)) return new Int16Array((buf as ArrayBufferView).buffer);
-  return new Int16Array(0);
+  return toInt16Pcm(await (res as { buffer?: Promise<unknown> }).buffer);
 }
 async function toText(res: unknown): Promise<string> {
   const t = (res as { text?: unknown }).text;

@@ -27,3 +27,31 @@ export async function playWav(wavBytes: Uint8Array): Promise<void> {
   const player = createAudioPlayer(file.uri);
   player.play();
 }
+
+// Like playWav, but resolves when playback FINISHES (didJustFinish event), so
+// callers can serialize utterances. A duration-derived timeout guards against
+// the event never firing (player torn down, audio focus lost, …).
+export async function playWavAndWait(wavBytes: Uint8Array, sampleRate: number): Promise<void> {
+  const name = `tifo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.wav`;
+  const file = new File(Paths.cache, name);
+  try { file.create(); } catch { /* already exists */ }
+  file.write(wavBytes);
+  const durationMs = ((wavBytes.byteLength - 44) / 2 / sampleRate) * 1000; // PCM16 mono
+  const player = createAudioPlayer(file.uri);
+  await new Promise<void>((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      try { sub.remove(); } catch { /* already removed */ }
+      try { player.remove(); } catch { /* already released */ }
+      resolve();
+    };
+    const timer = setTimeout(finish, durationMs + 3000);
+    const sub = player.addListener("playbackStatusUpdate", (st) => {
+      if (st.didJustFinish) finish();
+    });
+    player.play();
+  });
+}

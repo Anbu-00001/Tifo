@@ -14,7 +14,7 @@ export type Config = {
     chunkMs: number; gapMs: number; vad: string; vadParams: Record<string, number>;
     asrThreads: number; ttsSpeed: number; ttsSteps: number; asrParams: Record<string, unknown>;
   };
-  room: { topic: string; maxMessageBytes: number; bootstrap: string[] };
+  room: { topic: string; maxMessageBytes: number; bootstrap: string[]; speak?: boolean };
   ui: { sourceFlag: string; sourceLabel: string; languages: Lang[] };
   sample: { commentaryLines: string[] };
 };
