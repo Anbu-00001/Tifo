@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
+import { View, Text, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator } from "react-native";
 import * as Device from "expo-device";
-import { C, F } from "../theme";
+import { C, F, fontFor } from "../theme";
 import { cfg, type Lang } from "../config";
 import type { Screen } from "../../App";
 import { joinRoom, type Room, type RoomEvent } from "../mesh/room";
@@ -17,10 +17,12 @@ const ROOM_LANGS: Lang[] = [
   ...cfg.ui.languages,
 ].filter((l) => isRoomLang(l.code));
 
+type Peer = { key: string; name: string; lang: string };
+
 export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
   const [myLang, setMyLang] = useState<string | null>(null);
   const [status, setStatus] = useState("Joining the room…");
-  const [peers, setPeers] = useState(0);
+  const [peers, setPeers] = useState<Peer[]>([]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const room = useRef<Room | null>(null);
@@ -52,10 +54,9 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
     const name = Device.modelName ?? "Phone";
     room.current = joinRoom({ name, lang }, (e: RoomEvent) => {
       switch (e.ev) {
-        case "ready": setStatus(`In room as ${e.name} — finding peers…`); break;
-        case "announced": setStatus((s) => (s.includes("in room") ? s : "On the DHT — waiting for fans…")); break;
-        case "peer": setPeers(e.peers); setStatus(`${e.peers + 1} in room`); break;
-        case "peer-gone": setPeers(e.peers); setStatus(`${e.peers + 1} in room`); break;
+        case "ready": setStatus(`in as ${e.name}`); break;
+        case "peer": setPeers((p) => [...p.filter((x) => x.key !== e.key), { key: e.key, name: e.name, lang: e.lang }]); break;
+        case "peer-gone": setPeers((p) => p.filter((x) => x.key !== e.key)); break;
         case "msg": onIncoming(e, lang); break;
         case "sent":
           setMsgs((m) => [...m, { id: `me-${e.id}-${e.ts}`, name: e.name, lang: e.lang, text: e.text, orig: e.text, ts: e.ts, self: true, state: "plain" }]);
@@ -106,7 +107,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
         <View style={s.chips}>
           {ROOM_LANGS.map((l) => (
             <Pressable key={l.code} onPress={() => join(l.code)} style={s.chip}>
-              <Text style={s.chipT}>{l.flag} {l.label}</Text>
+              <Text style={[s.chipT, { fontFamily: fontFor(l.label) }]} numberOfLines={1}>{l.flag} {l.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -122,21 +123,42 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
         <Text style={s.navT}>Fan room</Text>
         <View style={s.badge}><View style={s.dot} /><Text style={s.badgeT}>{flagOf(myLang)} {myLang.toUpperCase()} · P2P</Text></View>
       </View>
-      <Text style={s.status}>{status}{peers > 0 ? ` · ${peers} peer${peers === 1 ? "" : "s"} connected` : ""}</Text>
+
+      {peers.length === 0 ? (
+        <View style={s.searchRow}>
+          <ActivityIndicator size="small" color={C.accent} />
+          <Text style={s.status}>Searching for fans nearby… ({status})</Text>
+        </View>
+      ) : (
+        <View style={s.peerRow}>
+          <Text style={s.status}>{peers.length + 1} in room · </Text>
+          {peers.map((p) => (
+            <View key={p.key} style={s.peerPill}>
+              <Text style={s.peerT} numberOfLines={1}>{flagOf(p.lang)} {p.name}</Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <FlatList
         ref={list}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingVertical: 10 }}
+        contentContainerStyle={{ paddingVertical: 10, flexGrow: 1 }}
         data={msgs}
         keyExtractor={(m) => m.id}
         onContentSizeChange={() => list.current?.scrollToEnd({ animated: true })}
+        ListEmptyComponent={
+          <View style={s.empty}>
+            <Text style={s.emptyT}>You're in — no messages yet.</Text>
+            <Text style={s.emptyS}>Everyone writes in their own language;{"\n"}you'll read it in {ROOM_LANGS.find((l) => l.code === myLang)?.label ?? myLang}.</Text>
+          </View>
+        }
         renderItem={({ item }) => (
           <View style={[s.bubble, item.self ? s.mine : s.theirs]}>
             <Text style={s.meta}>{meta(item)}</Text>
-            <Text style={[s.text, !item.self && rtl && s.rtl]}>{item.text}</Text>
+            <Text style={[s.text, { fontFamily: fontFor(item.text) }, !item.self && rtl && s.rtl]}>{item.text}</Text>
             {item.state === "translated" && item.orig !== item.text && (
-              <Text style={s.orig}>{item.orig}</Text>
+              <Text style={[s.orig, { fontFamily: fontFor(item.orig) }]}>{item.orig}</Text>
             )}
           </View>
         )}
@@ -166,7 +188,14 @@ const s = StyleSheet.create({
   badge: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: "rgba(35,209,139,0.09)", borderWidth: 1, borderColor: "rgba(35,209,139,0.4)" },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent },
   badgeT: { color: C.accent, fontFamily: F.mono, fontSize: 10, fontWeight: "700" },
-  status: { color: C.mut, fontFamily: F.mono, fontSize: 12, marginTop: 10 },
+  status: { color: C.mut, fontFamily: F.mono, fontSize: 12 },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
+  peerRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, marginTop: 10 },
+  peerPill: { paddingVertical: 3, paddingHorizontal: 9, borderRadius: 999, backgroundColor: "rgba(255,255,255,0.05)", borderWidth: 1, borderColor: C.line2, maxWidth: 160 },
+  peerT: { color: C.mut, fontFamily: F.mono, fontSize: 11 },
+  empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8 },
+  emptyT: { color: C.mut, fontFamily: F.sansBold, fontSize: 16 },
+  emptyS: { color: C.mut2, fontFamily: F.sans, fontSize: 13, textAlign: "center", lineHeight: 19 },
   label: { marginTop: 26, color: C.mut2, fontFamily: F.mono, fontSize: 12, letterSpacing: 2 },
   hint: { marginTop: 8, color: C.mut, fontFamily: F.sans, fontSize: 14, lineHeight: 20 },
   chips: { marginTop: 18, flexDirection: "row", flexWrap: "wrap", gap: 10 },

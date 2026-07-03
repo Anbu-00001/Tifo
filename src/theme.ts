@@ -25,3 +25,12 @@ export const F = {
 } as const;
 
 export const R = { device: 40, card: 16, pill: 999, chip: 14 } as const;
+
+// Archivo only ships Latin glyphs. For text that may carry other scripts
+// (Devanagari, Arabic, Cyrillic, …) fall back to the system font, which
+// Android/iOS guarantee covers everything. Emoji (surrogate pairs) are fine
+// in any font, so they don't trigger the fallback.
+const NON_LATIN = new RegExp("[\\u0370-\\u1DFF\\u2C00-\\uD7FF\\uFB00-\\uFDFF\\uFE70-\\uFEFF]");
+export function fontFor(text: string): string | undefined {
+  return NON_LATIN.test(text) ? undefined : F.sans;
+}

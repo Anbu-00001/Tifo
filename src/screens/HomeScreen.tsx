@@ -13,25 +13,25 @@ export default function HomeScreen({ nav }: { nav: (s: Screen) => void }) {
       <View style={s.trust}>
         <View style={s.dot} />
         <View>
-          <Text style={s.trustT}>0 KB sent · 100% on-device</Text>
-          <Text style={s.trustS}>verified — no network calls</Text>
+          <Text style={s.trustT}>0 servers · 100% on-device</Text>
+          <Text style={s.trustS}>AI runs on your phone · chat is peer-to-peer</Text>
         </View>
       </View>
 
-      <Pressable style={[s.feature, s.primary]} onPress={() => nav("live")}>
-        <View style={[s.ic, s.icPrimary]}><Text style={s.icT}>🎙</Text></View>
+      <Pressable style={[s.feature, s.primary]} onPress={() => nav("room")}>
+        <View style={[s.ic, s.icPrimary]}><Text style={s.icT}>🌍</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.fT}>Live translation</Text>
-          <Text style={s.fS}>Hear the match in your language</Text>
+          <Text style={s.fT}>Fan room</Text>
+          <Text style={s.fS}>Chat across languages — your phone translates</Text>
         </View>
         <Text style={[s.chev, { color: C.accent }]}>›</Text>
       </Pressable>
 
-      <Pressable style={s.feature} onPress={() => nav("room")}>
-        <View style={s.ic}><Text style={s.icT}>🌍</Text></View>
+      <Pressable style={s.feature} onPress={() => nav("live")}>
+        <View style={s.ic}><Text style={s.icT}>🎙</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.fT}>Fan room</Text>
-          <Text style={s.fS}>P2P match chat — no server, no signup</Text>
+          <Text style={s.fT}>Live translation</Text>
+          <Text style={s.fS}>Hear the match in your language</Text>
         </View>
         <Text style={s.chev}>›</Text>
       </Pressable>
