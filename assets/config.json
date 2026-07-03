@@ -6,7 +6,7 @@
     "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
     "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
     "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
-    "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot" }
+    "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot", "pivot": "en" }
   },
   "lang": { "source": "en", "target": "es" },
   "room": {
@@ -16,6 +16,7 @@
   },
   "ui": {
     "sourceFlag": "🇬🇧",
+    "sourceLabel": "English",
     "languages": [
       { "code": "it", "label": "Italiano", "flag": "🇮🇹", "rtl": false },
       { "code": "es", "label": "Español",  "flag": "🇪🇸", "rtl": false },

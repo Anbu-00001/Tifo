@@ -16,9 +16,15 @@ export function resolveModel(constName: string): unknown {
 // Resolve the NMT model constant for a language pair from a config-driven template
 // (default "BERGAMOT_${SRC}_${TGT}"), falling back to cfg.models.nmt.const.
 export function nmtConstFor(source: string, target: string): string {
+  return nmtConstIfExists(source, target) ?? cfg.models.nmt.const;
+}
+
+// Strict variant: null when the SDK ships no model for the pair (used for
+// routing decisions — the fallback above would silently translate the wrong pair).
+export function nmtConstIfExists(source: string, target: string): string | null {
   const tmpl = cfg.models.nmt.constTemplate || "BERGAMOT_${SRC}_${TGT}";
   const guess = tmpl.replace("${SRC}", source.toUpperCase()).replace("${TGT}", target.toUpperCase());
-  return guess in (qvac as Record<string, unknown>) ? guess : cfg.models.nmt.const;
+  return guess in (qvac as Record<string, unknown>) ? guess : null;
 }
 
 type Progress = { percentage?: number; downloaded?: number; total?: number };

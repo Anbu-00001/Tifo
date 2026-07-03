@@ -7,7 +7,7 @@ export type Lang = { code: string; label: string; flag: string; rtl?: boolean };
 
 export type Config = {
   device: string;
-  models: Record<string, { const: string; type?: string; engine?: string; dim?: number; constTemplate?: string }>;
+  models: Record<string, { const: string; type?: string; engine?: string; dim?: number; constTemplate?: string; pivot?: string }>;
   lang: { source: string; target: string };
   audio: { asrSampleRate: number; ttsSampleRate: number };
   stream: {
@@ -15,7 +15,7 @@ export type Config = {
     asrThreads: number; ttsSpeed: number; ttsSteps: number; asrParams: Record<string, unknown>;
   };
   room: { topic: string; maxMessageBytes: number; bootstrap: string[] };
-  ui: { sourceFlag: string; languages: Lang[] };
+  ui: { sourceFlag: string; sourceLabel: string; languages: Lang[] };
   sample: { commentaryLines: string[] };
 };
 

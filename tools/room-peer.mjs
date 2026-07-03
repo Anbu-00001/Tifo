@@ -30,7 +30,7 @@ const bootstrap = (arg("--bootstrap", (cfg.room.bootstrap ?? []).join(",")) || "
 const t0 = Date.now();
 const log = (line) => console.log(`[${((Date.now() - t0) / 1000).toFixed(1)}s] ${line}`);
 
-let saidTo = new Set();
+let said = false; // --say fires once, on the first peer — re-saying per join spams multi-peer rooms
 const room = createRoom({ topic, name, lang, maxMessageBytes: cfg.room.maxMessageBytes, bootstrap }, (e) => {
   switch (e.ev) {
     case "ready": log(`ready as ${e.name} (${e.lang}) key=${e.me} topic="${topic}"`); break;
@@ -38,8 +38,8 @@ const room = createRoom({ topic, name, lang, maxMessageBytes: cfg.room.maxMessag
     case "flushed": log(`swarm flushed (${e.peers} peer${e.peers === 1 ? "" : "s"})`); break;
     case "peer":
       log(`PEER JOINED: ${e.name} (${e.lang}) key=${e.key} — ${e.peers} in room`);
-      if (sayOnPeer && !saidTo.has(e.key)) {
-        saidTo.add(e.key);
+      if (sayOnPeer && !said) {
+        said = true;
         const echo = room.send(sayOnPeer);
         if (echo) log(`SENT: "${echo.text}"`);
       }
