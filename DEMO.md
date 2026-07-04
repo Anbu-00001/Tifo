@@ -59,6 +59,9 @@ models. To make it theatrical:
 ## Troubleshooting
 - **Bootstrap binds 49738 instead of 49737** → something (often a stale `room-peer.mjs`)
   holds the port: `ss -ulpn | grep 49737`, kill it, restart the bootstrap.
+- **Peers stop finding each other after the laptop slept / changed networks** → the DHT
+  testnet advertises the addresses it had at startup; restart `room-bootstrap.mjs` (and
+  peers) after any suspend or Wi-Fi change.
 - **Peers never connect** → check the golden order; verify phone and laptop share the LAN
   (`adb shell ip -4 addr show wlan0`); confirm config bootstrap IP matches the laptop.
 - **Metro serves stale JS** → `curl -s localhost:8081/index.bundle?platform=android | grep <token>`
