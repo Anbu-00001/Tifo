@@ -3,7 +3,7 @@
   "outDir": "out",
   "useGpu": false,
   "models": {
-    "asr":  { "const": "WHISPER_TINY",                       "type": "whisper" },
+    "asr":  { "const": "WHISPER_BASE_Q8_0",                  "type": "whisper" },
     "tts":  { "const": "TTS_MULTILINGUAL_SUPERTONIC3_Q8_0",  "type": "tts", "engine": "supertonic" },
     "ttsEnFallback": { "const": "TTS_EN_SUPERTONIC_Q8_0",    "type": "tts", "engine": "supertonic" },
     "nmt":  { "const": "BERGAMOT_EN_ES", "constTemplate": "BERGAMOT_${SRC}_${TGT}", "type": "nmt", "engine": "Bergamot", "pivot": "en" }

@@ -57,7 +57,10 @@ async function toText(res: unknown): Promise<string> {
   return typeof (t as { then?: unknown })?.then === "function" ? String(await t) : String(t);
 }
 
-export type Translated = { text: string; route: Hop[] };
+// ms counts only the translate calls (summed across hops), not model
+// load/download — so the first message after a cold start doesn't report a
+// 30MB download as "translation latency".
+export type Translated = { text: string; route: Hop[]; ms: number };
 
 // Resolves null when the pair is unroutable (caller shows the original).
 // Throws only on runtime failure (load/translate) so callers can distinguish.
@@ -65,14 +68,18 @@ export async function translateForRoom(text: string, src: string, tgt: string): 
   const route = routeFor(src, tgt);
   if (route === null) return null;
   let out = text;
+  let ms = 0;
   for (const hop of route) {
     const modelId = await pairModel(hop);
+    const t0 = Date.now();
     const res = await qvac.translate({
       modelId, text: out, stream: false, modelType: cfg.models.nmt.type,
     } as Parameters<typeof qvac.translate>[0]);
-    out = (await toText(res)).trim() || out;
+    const translated = (await toText(res)).trim();
+    ms += Date.now() - t0;
+    out = translated || out;
   }
-  return { text: out, route };
+  return { text: out, route, ms };
 }
 
 export async function unloadRoomNmt(): Promise<void> {

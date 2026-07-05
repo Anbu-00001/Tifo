@@ -15,6 +15,7 @@
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.0",
     "@expo-google-fonts/jetbrains-mono": "^0.4.0",
+    "@expo/vector-icons": "^15.0.3",
     "@qvac/sdk": "^0.14.0",
     "b4a": "^1.8.1",
     "babel-preset-expo": "~54.0.10",

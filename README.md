@@ -25,11 +25,11 @@ Every fan writes (or **speaks**) in their own language. Every other fan reads �
 
 ## Why this can't be "just another AI app"
 
-A thousand hackathon apps call a cloud translation API. TIFO is the app for the moment the cloud is *gone*:
+A thousand hackathon apps call a cloud translation API. TIFO is the app for the moment the cloud is *gone* — and that moment is **this tournament**:
 
-- **A packed stadium** where the network has collapsed under 60,000 phones.
-- **A fan pub abroad** where nobody shares a language or wants to make accounts.
-- **Anywhere private**: messages go phone-to-phone, encrypted by Hyperswarm's Noise transport. No server ever sees them; there is no server.
+- **World Cup 2026 is being called ["the biggest network stress test of 2026"](https://capacityglobal.com/news/world-cup-stress-test/)** — 50+ TB of data per match, carriers 3–5×-ing stadium bandwidth and still choking at kickoff and goals, exactly when fans want to talk.
+- **It's the most multilingual crowd ever assembled** — [48 teams, 30+ languages, 6M+ visitors](https://breakingthelines.com/opinion/2026-world-cup-48-teams-dozens-of-languages-one-tournament/), with fan conversation "locked behind language walls."
+- **Anywhere private**: messages go phone-to-phone, encrypted by Hyperswarm's Noise transport. No server ever sees them — there is no server to fail, subpoena, or [investigate](https://www.npr.org/2026/06/26/nx-s1-5871397/world-cup-tickets-stubhub-resale-controversy).
 
 The two Tether stacks aren't decoration here — they're the *only* way to build this:
 
@@ -117,6 +117,12 @@ flowchart TD
 **Creativity.** The room *is* the translator. There's no "translation feature" bolted onto chat — each phone renders the same room in its owner's language, and voice rides the identical path as text (speech becomes a message; messages become speech).
 
 **Real use of the tracks.** QVAC: every AI inference (ASR, NMT×101 pairs, TTS, VAD) runs through `@qvac/sdk` on the device — no cloud AI anywhere. Pears: every byte of messaging moves over Hyperswarm (hyperdht discovery, Noise-encrypted UDX connections) — no WebRTC, no fallback server. Delete either stack and there is no product.
+
+<details>
+<summary><b>Pears Stack compliance in detail</b></summary>
+
+All networking is Holepunch building blocks: `hyperswarm` (peer discovery + connections), `hyperdht` (DHT, incl. our local testnet), Noise-encrypted `udx` transport, `b4a`/`sodium-universal` underneath. The runtime the room runs in is **Bare — Holepunch's own JavaScript runtime** ([bare.pears.com](https://bare.pears.com/)), embedded via Holepunch's first-party [`react-native-bare-kit`](https://github.com/holepunchto/react-native-bare-kit) and bundled with `bare-pack`. This is the **same architecture as Keet Mobile**, Holepunch's flagship app (React Native UI + Bare worklet doing 100% of the P2P work). Pears itself is [evolving `pear run` into an embeddable runtime library with `pear-mobile` on the way](https://pears.com/news/pear-evolution/) — an embedded-Bare mobile app is where the platform is heading. No WebRTC, no relay servers, no cloud fallback anywhere in the tree.
+</details>
 
 ## Run it in 60 seconds (no phone needed)
 

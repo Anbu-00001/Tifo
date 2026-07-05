@@ -2,6 +2,12 @@
 // segmentation) → each meaningful utterance is handed to the caller, who posts
 // it to the room as a normal text message. Receivers then translate/speak it
 // like any other message — voice rides the exact same pipeline as text.
+//
+// Capture is push-to-talk: the mic stream runs the whole time voice input is
+// armed (so pressing never clips the first word), but frames only reach the
+// ASR session while the caller holds capture on. Releasing injects a second of
+// silence so the VAD (min_silence_duration_ms) flushes the utterance
+// immediately instead of waiting for the next press.
 import { cfg } from "../config";
 import { load, unload, predownload, resolveModel, qvac } from "./models";
 import { micSource } from "../audio/source";
@@ -16,7 +22,12 @@ function isMeaningful(text: string): boolean {
   return t.replace(/[^\p{L}\p{N}]/gu, "").length >= 3;
 }
 
-export type VoiceInput = { stop: () => void };
+export type VoiceInput = { stop: () => void; setCapturing: (on: boolean) => void };
+
+type StreamSession = {
+  write: (b: Uint8Array) => void; end: () => void;
+  [Symbol.asyncIterator]: () => AsyncIterator<string>;
+};
 
 export function startVoiceInput(opts: {
   lang: string;
@@ -24,7 +35,9 @@ export function startVoiceInput(opts: {
   onStatus?: (msg: string) => void;
 }): VoiceInput {
   let stopped = false;
+  let capturing = false;
   let gen: AsyncGenerator<Uint8Array> | null = null;
+  let session: StreamSession | null = null;
 
   void (async () => {
     try {
@@ -42,21 +55,22 @@ export function startVoiceInput(opts: {
       }
       if (stopped) return;
 
-      const session = await qvac.transcribeStream({ modelId: asrId }) as {
-        write: (b: Uint8Array) => void; end: () => void; [Symbol.asyncIterator]: () => AsyncIterator<string>;
-      };
-      opts.onStatus?.("Listening — speak and pause…");
+      session = await qvac.transcribeStream({ modelId: asrId }) as StreamSession;
+      const sess = session;
+      opts.onStatus?.("");
       gen = micSource().chunks(cfg.stream.chunkMs, cfg.audio.asrSampleRate);
 
-      // Feed mic frames concurrently; the transcript loop below consumes utterances.
+      // Feed mic frames concurrently while capture is held; the transcript
+      // loop below consumes utterances.
       void (async () => {
-        try { for await (const chunk of gen) session.write(chunk); }
+        try { for await (const chunk of gen) { if (capturing) sess.write(chunk); } }
         catch (e) { opts.onStatus?.(`mic error: ${(e as Error)?.message ?? e}`); }
-        finally { try { session.end(); } catch { /* already closed */ } }
+        finally { try { sess.end(); } catch { /* already closed */ } }
       })();
 
-      for await (const raw of session) {
+      for await (const raw of sess) {
         if (stopped) break;
+        console.log(`[roomMic] raw transcript: ${JSON.stringify(raw)} meaningful=${isMeaningful(raw)}`);
         if (isMeaningful(raw)) opts.onUtterance(raw.trim());
       }
       opts.onStatus?.("");
@@ -68,7 +82,16 @@ export function startVoiceInput(opts: {
   return {
     stop: () => {
       stopped = true;
+      capturing = false;
       void gen?.return?.(undefined); // triggers micSource finally → StreamAudio.stop()
+    },
+    setCapturing: (on: boolean) => {
+      if (stopped || on === capturing) return;
+      capturing = on;
+      if (!on && session) {
+        // 1s of f32le zeros > vadParams.min_silence_duration_ms → flush now.
+        try { session.write(new Uint8Array(cfg.audio.asrSampleRate * 4)); } catch { /* session ended */ }
+      }
     },
   };
 }

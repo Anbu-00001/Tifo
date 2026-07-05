@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { C, F } from "../theme";
+import { MaterialIcons } from "@expo/vector-icons";
 import type { Screen } from "../../App";
 
 export default function HomeScreen({ nav }: { nav: (s: Screen) => void }) {
@@ -28,7 +29,7 @@ export default function HomeScreen({ nav }: { nav: (s: Screen) => void }) {
       </Pressable>
 
       <Pressable style={s.feature} onPress={() => nav("live")}>
-        <View style={s.ic}><Text style={s.icT}>🎙</Text></View>
+        <View style={s.ic}><MaterialIcons name="mic" size={24} color={C.mut} /></View>
         <View style={{ flex: 1 }}>
           <Text style={s.fT}>Live translation</Text>
           <Text style={s.fS}>Hear the match in your language</Text>

@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { C, F } from "../theme";
 import { cfg } from "../config";
 import type { Screen } from "../../App";
@@ -62,7 +63,7 @@ export default function LiveScreen({ nav }: { nav: (s: Screen) => void }) {
           </View>
           <View style={s.center}>
             <Pressable style={s.golive} onPress={goLive}>
-              <Text style={{ fontSize: 34 }}>🎙</Text>
+              <MaterialIcons name="mic" size={34} color="#04140d" />
               <Text style={s.goliveT}>GO LIVE</Text>
             </Pressable>
             <Text style={s.hint}>Tap to translate the demo commentary</Text>

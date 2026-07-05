@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import * as Device from "expo-device";
 import { C, F, fontFor } from "../theme";
 import { cfg, type Lang } from "../config";
@@ -11,7 +12,7 @@ import { speak, unloadRoomTts } from "../qvac/roomVoice";
 import { startVoiceInput, unloadRoomAsr, type VoiceInput } from "../qvac/roomMic";
 
 type MsgState = "plain" | "translating" | "translated" | "untranslatable" | "failed";
-type Msg = { id: string; name: string; lang: string; text: string; orig: string; ts: number; self: boolean; state: MsgState; viaPivot?: boolean };
+type Msg = { id: string; name: string; lang: string; text: string; orig: string; ts: number; self: boolean; state: MsgState; viaPivot?: boolean; latMs?: number };
 
 // User-pickable room languages: the source/hub language + every configured
 // language the shipped NMT models can actually reach both ways.
@@ -37,6 +38,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
   const speakRef = useRef(speakOn);
   const toggleSpeak = () => setSpeakOn((v) => { speakRef.current = !v; return !v; });
   const [micOn, setMicOn] = useState(false);
+  const [holding, setHolding] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
   const voice = useRef<VoiceInput | null>(null);
 
@@ -45,6 +47,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
       voice.current.stop();
       voice.current = null;
       setMicOn(false);
+      setHolding(false);
       setVoiceStatus("");
       return;
     }
@@ -77,7 +80,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
       .then((r) => {
         if (r === null) patchMsg(id, { state: "untranslatable" });
         else {
-          patchMsg(id, { text: r.text, state: "translated", viaPivot: r.route.length > 1 });
+          patchMsg(id, { text: r.text, state: "translated", viaPivot: r.route.length > 1, latMs: r.ms });
           if (speakRef.current) void speak(r.text, lang);
         }
       })
@@ -125,7 +128,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
     const who = m.self ? "you" : m.name;
     switch (m.state) {
       case "translating": return `${who} · ${m.lang} → ${myLang} · translating…`;
-      case "translated": return `${who} · ${m.lang} → ${myLang}${m.viaPivot ? " · via " + (cfg.models.nmt.pivot ?? "en") : ""} · on-device`;
+      case "translated": return `${who} · ${m.lang} → ${myLang}${m.viaPivot ? " · via " + (cfg.models.nmt.pivot ?? "en") : ""}${m.latMs != null ? ` · ${m.latMs} ms` : ""} · on-device`;
       case "untranslatable": return `${who} · ${m.lang} · no offline model for this pair`;
       case "failed": return `${who} · ${m.lang} · translation failed — original shown`;
       default: return `${who} · ${m.lang}`;
@@ -161,7 +164,7 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
         <Pressable onPress={() => nav("home")}><Text style={s.back}>‹</Text></Pressable>
         <Text style={s.navT}>Fan room</Text>
         <Pressable onPress={toggleSpeak} style={[s.spk, speakOn && s.spkOn]}>
-          <Text style={s.spkT}>{speakOn ? "🔊" : "🔇"}</Text>
+          <MaterialIcons name={speakOn ? "volume-up" : "volume-off"} size={18} color={speakOn ? C.accent : C.mut} />
         </Pressable>
         <View style={s.badge}><View style={s.dot} /><Text style={s.badgeT}>{flagOf(myLang)} {myLang.toUpperCase()} · P2P</Text></View>
       </View>
@@ -207,9 +210,21 @@ export default function RoomScreen({ nav }: { nav: (s: Screen) => void }) {
       />
 
       {voiceStatus !== "" && <Text style={s.voiceStatus}>{voiceStatus}</Text>}
+      {micOn && (
+        <Pressable
+          onPressIn={() => { setHolding(true); voice.current?.setCapturing(true); }}
+          onPressOut={() => { setHolding(false); voice.current?.setCapturing(false); }}
+          style={[s.ptt, holding && s.pttOn]}
+        >
+          <View style={s.pttRow}>
+            <MaterialIcons name="mic" size={18} color={holding ? "#EF6A52" : C.fg} />
+            <Text style={s.pttT}>{holding ? "Listening — release to send" : "Hold to talk"}</Text>
+          </View>
+        </Pressable>
+      )}
       <View style={s.inputRow}>
         <Pressable onPress={toggleMic} style={[s.mic, micOn && s.micOn]}>
-          <Text style={s.micT}>🎙</Text>
+          <MaterialIcons name={micOn ? "mic" : "mic-off"} size={20} color={micOn ? "#EF6A52" : C.mut} />
         </Pressable>
         <TextInput
           style={s.input}
@@ -234,10 +249,12 @@ const s = StyleSheet.create({
   badge: { flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: "rgba(35,209,139,0.09)", borderWidth: 1, borderColor: "rgba(35,209,139,0.4)" },
   spk: { padding: 6, borderRadius: 999, borderWidth: 1, borderColor: C.line },
   spkOn: { borderColor: "rgba(35,209,139,0.5)", backgroundColor: "rgba(35,209,139,0.1)" },
-  spkT: { fontSize: 16 },
   mic: { padding: 10, borderRadius: 999, borderWidth: 1, borderColor: C.line },
   micOn: { borderColor: "rgba(239,106,82,0.7)", backgroundColor: "rgba(239,106,82,0.15)" },
-  micT: { fontSize: 18 },
+  ptt: { alignSelf: "stretch", alignItems: "center", paddingVertical: 12, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: "rgba(255,255,255,0.04)", marginTop: 6 },
+  pttOn: { borderColor: "rgba(239,106,82,0.7)", backgroundColor: "rgba(239,106,82,0.15)" },
+  pttRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  pttT: { color: C.fg, fontFamily: F.sansBold, fontSize: 15 },
   voiceStatus: { color: C.amber, fontFamily: F.mono, fontSize: 11, marginBottom: 2 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.accent },
   badgeT: { color: C.accent, fontFamily: F.mono, fontSize: 10, fontWeight: "700" },
